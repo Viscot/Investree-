@@ -2,100 +2,369 @@
     --primary-color: #4361ee;
     --success-color: #4cc9f0;
     --danger-color: #f72585;
+    --warning-color: #f9c74f;
+    --info-color: #7209b7;
     --light-bg: #f8f9fa;
-    --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+* {
+    box-sizing: border-box;
 }
 
 body {
     background: var(--light-bg);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
 }
 
+.container-fluid {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 8px;
+}
+
+/* Cards */
 .card {
     border: none;
-    border-radius: 10px;
+    border-radius: 12px;
     box-shadow: var(--card-shadow);
-    margin-bottom: 20px;
+    margin-bottom: 12px;
+    background: white;
 }
 
 .card-header {
     background-color: var(--primary-color);
     color: white;
-    border-radius: 10px 10px 0 0 !important;
+    border-radius: 12px 12px 0 0 !important;
+    padding: 12px 16px;
 }
 
-.btn-primary {
+.card-body {
+    padding: 16px;
+}
+
+/* Mobile First Typography */
+h2 {
+    font-size: 1.25rem !important;
+    font-weight: 600;
+}
+
+h5 {
+    font-size: 1rem !important;
+    font-weight: 600;
+}
+
+h6 {
+    font-size: 0.85rem !important;
+    font-weight: 600;
+}
+
+/* Buttons */
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+}
+
+.btn-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+/* Form Controls */
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    font-size: 0.9rem;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
+}
+
+.form-control-sm, .form-select-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    font-size: 0.9rem;
+}
+
+/* Filter Buttons */
+.filter-btn {
+    border-radius: 20px;
+    padding: 0.4rem 1rem;
+    font-size: 0.85rem;
+}
+
+.filter-btn.active {
     background-color: var(--primary-color);
+    color: white;
     border-color: var(--primary-color);
 }
 
-.btn-success {
-    background-color: var(--success-color);
-    border-color: var(--success-color);
-}
-
-.btn-danger {
-    background-color: var(--danger-color);
-    border-color: var(--danger-color);
-}
-
-.badge-income {
-    background-color: rgba(76, 201, 240, 0.2);
-    color: #4cc9f0;
-}
-
-.badge-expense {
-    background-color: rgba(247, 37, 133, 0.2);
-    color: #f72585;
-}
-
-.currency::before {
-    content: "Rp ";
-}
-
-.form-control,
-.form-select {
+/* Table */
+.table-responsive {
     border-radius: 8px;
-    padding: 10px 15px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .table {
-    border-radius: 10px;
-    overflow: hidden;
+    font-size: 0.85rem;
+    margin-bottom: 0;
+    min-width: 600px;
 }
 
 .table thead th {
     background-color: var(--primary-color);
     color: white;
     border: none;
+    padding: 10px 8px;
+    font-weight: 500;
+    font-size: 0.8rem;
+}
+
+.table tbody td {
+    padding: 10px 8px;
+    vertical-align: middle;
 }
 
 .table tbody tr:hover {
     background-color: rgba(67, 97, 238, 0.05);
 }
 
-.pagination .page-item.active .page-link {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
+/* Badges */
+.badge-income, .badge-expense {
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.badge-income {
+    background-color: rgba(76, 201, 240, 0.15);
+    color: #2a9d8f;
+}
+
+.badge-expense {
+    background-color: rgba(247, 37, 133, 0.15);
+    color: #e63946;
+}
+
+/* Pagination */
+.pagination {
+    flex-wrap: wrap;
+    gap: 4px;
 }
 
 .pagination .page-link {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    border-radius: 6px;
     color: var(--primary-color);
+    border: 1px solid #dee2e6;
 }
 
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+/* Summary Cards */
 .summary-card {
     border-left: 4px solid;
     border-radius: 8px;
+    transition: transform 0.2s;
 }
 
-.summary-income {
-    border-left-color: var(--success-color);
+.summary-income { border-left-color: var(--success-color); }
+.summary-expense { border-left-color: var(--danger-color); }
+.summary-total { border-left-color: var(--primary-color); }
+
+.summary-card .card-body {
+    padding: 12px !important;
 }
 
-.summary-expense {
-    border-left-color: var(--danger-color);
+.summary-card .card-title {
+    font-size: 0.75rem;
+    margin-bottom: 4px;
+    color: #6c757d;
 }
 
-.summary-total {
-    border-left-color: var(--primary-color);
+.summary-card .card-text {
+    font-size: 1rem;
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+/* Bank Items - Warna sesuai ciri khas bank */
+.bank-item {
+    border-radius: 12px;
+    padding: 16px;
+    height: 100%;
+    box-shadow: var(--card-shadow);
+    color: white;
+    transition: transform 0.2s;
+}
+
+.bank-item:hover {
+    transform: translateY(-2px);
+}
+
+/* Warna Bank BCA */
+.bank-bca {
+    background: linear-gradient(135deg, #003366 0%, #004d99 100%);
+}
+
+/* Warna Bank Mandiri */
+.bank-mandiri {
+    background: linear-gradient(135deg, #003da5 0%, #002b7a 100%);
+}
+
+/* Warna Bank BRI */
+.bank-bri {
+    background: linear-gradient(135deg, #004b8d 0%, #0066b3 100%);
+}
+
+/* Warna Bank BNI */
+.bank-bni {
+    background: linear-gradient(135deg, #ff6600 0%, #cc5200 100%);
+}
+
+/* Warna Bank CIMB Niaga */
+.bank-cimb {
+    background: linear-gradient(135deg, #7e2d8e 0%, #5e1f6b 100%);
+}
+
+/* Warna Bank Danamon */
+.bank-danamon {
+    background: linear-gradient(135deg, #006330 0%, #004d26 100%);
+}
+
+/* Warna Bank Permata */
+.bank-permata {
+    background: linear-gradient(135deg, #0077be 0%, #005c94 100%);
+}
+
+/* Warna Bank Maybank */
+.bank-maybank {
+    background: linear-gradient(135deg, #fdb913 0%, #ca9410 100%);
+}
+
+/* Warna Bank Lain */
+.bank-lain {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+}
+
+.bank-item h6 {
+    font-size: 1rem !important;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.bank-item .saldo {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin: 8px 0;
+    word-break: break-word;
+}
+
+.bank-item small {
+    font-size: 0.7rem;
+    opacity: 0.9;
+}
+
+/* Investment Cards */
+.investment-card {
+    background-color: white;
+    border-radius: 10px;
+    padding: 12px;
+    height: 100%;
+    border-left: 4px solid;
+    box-shadow: var(--card-shadow);
+}
+
+.investment-card h6 {
+    font-size: 0.9rem !important;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.investment-card .small {
+    font-size: 0.7rem;
+}
+
+.investment-card .price {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+/* Responsive Breakpoints */
+@media (min-width: 576px) {
+    .container-fluid { padding: 12px; }
+    h2 { font-size: 1.5rem !important; }
+    h5 { font-size: 1.1rem !important; }
+    .summary-card .card-text { font-size: 1.1rem; }
+    .bank-item .saldo { font-size: 1.4rem; }
+}
+
+@media (min-width: 768px) {
+    .container-fluid { padding: 20px; }
+    h2 { font-size: 1.75rem !important; }
+    h5 { font-size: 1.25rem !important; }
+    .summary-card .card-text { font-size: 1.25rem; }
+    .table { font-size: 0.9rem; }
+}
+
+@media (min-width: 992px) {
+    .summary-card .card-text { font-size: 1.4rem; }
+    .bank-item .saldo { font-size: 1.6rem; }
+}
+
+/* Utility Classes */
+.text-success-custom { color: #2a9d8f !important; }
+.text-danger-custom { color: #e63946 !important; }
+
+/* Hover Effects */
+.btn:hover { transform: translateY(-1px); }
+.bank-item:hover { transform: translateY(-2px); }
+.investment-card:hover { transform: translateY(-2px); }
+
+/* Loading State */
+.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Touch-friendly */
+button, .btn, .page-link {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 576px) {
+    .btn-sm { padding: 0.5rem 0.8rem; }
+    .filter-btn { padding: 0.4rem 0.8rem; }
+    .table td, .table th { padding: 8px 6px; }
 }
