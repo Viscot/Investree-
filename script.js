@@ -1,33 +1,53 @@
-// Data storage
+// Data Storage
 let transactions = JSON.parse(localStorage.getItem('transactions') || '[]');
 let mbanking = JSON.parse(localStorage.getItem('mbanking') || '[]');
-let investments = JSON.parse(localStorage.getItem('investments') || '[]');
+let gajian = JSON.parse(localStorage.getItem('gajian') || '[]');
+let saham = JSON.parse(localStorage.getItem('saham') || '[]');
+let emas = JSON.parse(localStorage.getItem('emas') || '[]');
+let investasiLain = JSON.parse(localStorage.getItem('investasiLain') || '[]');
 let utang = JSON.parse(localStorage.getItem('utang') || '[]');
 let targets = JSON.parse(localStorage.getItem('targets') || '[]');
-let investmentTypes = JSON.parse(localStorage.getItem('investmentTypes') || '["emas", "saham"]');
 
 // UI State
-let currentPage = 1;
 let currentFilter = 'all';
-let currentBankFilter = 'all';
-let currentInvestmentFilter = 'all';
-let currentSortInvestment = 'name';
-let currentUtangFilter = 'all';
-let currentTargetFilter = 'all';
-let currentTargetSort = 'progress';
+let currentTransactionPage = 1;
+const itemsPerPage = 10;
 
 // ==================== UTILITY FUNCTIONS ====================
+function formatNumber(num) {
+    if (!num && num !== 0) return '0';
+    
+    const isNegative = num < 0;
+    const absNum = Math.abs(num);
+    
+    let result = '';
+    if (absNum >= 1e12) {
+        result = (absNum / 1e12).toFixed(2) + ' T';
+    } else if (absNum >= 1e9) {
+        result = (absNum / 1e9).toFixed(2) + ' M';
+    } else if (absNum >= 1e6) {
+        result = (absNum / 1e6).toFixed(2) + ' jt';
+    } else if (absNum >= 1e3) {
+        result = (absNum / 1e3).toFixed(1) + ' rb';
+    } else {
+        result = absNum.toString();
+    }
+    
+    return isNegative ? '-' + result : result;
+}
+
 function formatRupiah(angka) {
-    if (!angka) return '0';
-    return angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    if (!angka && angka !== 0) return 'Rp 0';
+    
+    const isNegative = angka < 0;
+    const absAngka = Math.abs(angka);
+    
+    let formatted = absAngka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    
+    return isNegative ? '-Rp ' + formatted : 'Rp ' + formatted;
 }
 
-function parseRupiah(value) {
-    if (!value) return 0;
-    return parseInt(value.toString().replace(/\./g, '')) || 0;
-}
-
-function formatCurrency(input, blur = false) {
+function formatCurrency(input) {
     let value = input.value.replace(/\./g, '');
     value = value.replace(/[^0-9]/g, '');
     
@@ -38,475 +58,159 @@ function formatCurrency(input, blur = false) {
     
     let num = parseInt(value);
     if (!isNaN(num)) {
-        input.value = formatRupiah(num);
-        if (blur && num === 0) {
-            input.value = '';
-        }
+        input.value = num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     }
 }
 
-function getNumericValue(input) {
-    return parseRupiah(input.value);
+function parseRupiah(value) {
+    if (!value) return 0;
+    const numericValue = value.toString().replace(/[^0-9-]/g, '');
+    return parseInt(numericValue) || 0;
 }
 
-function saveTransactions() {
-    localStorage.setItem('transactions', JSON.stringify(transactions));
-}
-
-function saveMBanking() {
-    localStorage.setItem('mbanking', JSON.stringify(mbanking));
-}
-
-function saveInvestments() {
-    localStorage.setItem('investments', JSON.stringify(investments));
-}
-
-function saveUtang() {
-    localStorage.setItem('utang', JSON.stringify(utang));
-}
-
-function saveTargets() {
-    localStorage.setItem('targets', JSON.stringify(targets));
-}
-
-function saveInvestmentTypes() {
-    localStorage.setItem('investmentTypes', JSON.stringify(investmentTypes));
-}
-
-// ==================== FINANCIAL HEALTH FUNCTIONS ====================
-function calculateFinancialHealth() {
-    const totalIncome = transactions.filter(t => t.type === 'pemasukan').reduce((acc, t) => acc + t.amount, 0);
-    const totalExpense = transactions.filter(t => t.type === 'pengeluaran').reduce((acc, t) => acc + t.amount, 0);
-    const totalCash = totalIncome - totalExpense;
-    const totalMBanking = mbanking.reduce((acc, m) => acc + m.saldo, 0);
-    const totalInvestments = investments.reduce((acc, inv) => acc + inv.totalValue, 0);
-    const totalUtangAktif = utang.filter(u => u.status === 'active').reduce((acc, u) => acc + u.amount, 0);
+// ==================== GAJIAN FUNCTIONS ====================
+function updateRekeningSelect() {
+    const select = document.getElementById('gajianRekening');
+    if (!select) return;
     
-    const totalAset = totalCash + totalMBanking + totalInvestments;
-    const totalWealth = totalAset - totalUtangAktif;
+    select.innerHTML = '<option value="">Pilih Rekening</option>';
     
-    // Hitung rasio utang terhadap aset
-    const debtRatio = totalAset > 0 ? (totalUtangAktif / totalAset) * 100 : 100;
-    const expenseRatio = totalIncome > 0 ? (totalExpense / totalIncome) * 100 : 100;
-    
-    let healthStatus = {
-        text: '',
-        class: '',
-        detail: ''
-    };
-    
-    if (totalWealth <= 0) {
-        healthStatus = {
-            text: '🔴 Bangkrut',
-            class: 'bg-danger',
-            detail: 'Utang melebihi aset'
-        };
-    } else if (debtRatio > 70) {
-        healthStatus = {
-            text: '🔴 Terlilit Utang',
-            class: 'bg-danger',
-            detail: 'Utang sangat tinggi'
-        };
-    } else if (debtRatio > 50) {
-        healthStatus = {
-            text: '🟠 Waspada',
-            class: 'bg-warning text-dark',
-            detail: 'Utang cukup tinggi'
-        };
-    } else if (expenseRatio > 90) {
-        healthStatus = {
-            text: '🟡 Boros',
-            class: 'bg-warning text-dark',
-            detail: 'Pengeluaran hampir melebihi pemasukan'
-        };
-    } else if (expenseRatio > 70) {
-        healthStatus = {
-            text: '🟢 Cukup',
-            class: 'bg-info',
-            detail: 'Pengeluaran terkendali'
-        };
-    } else {
-        healthStatus = {
-            text: '💚 Sehat',
-            class: 'bg-success',
-            detail: 'Kondisi keuangan sangat baik'
-        };
-    }
-    
-    return healthStatus;
+    mbanking.forEach(bank => {
+        const option = document.createElement('option');
+        option.value = bank.id;
+        option.textContent = `${bank.bankName} - Rp ${formatNumber(bank.saldo)}`;
+        select.appendChild(option);
+    });
 }
 
-function updateFinancialHealthBadge() {
-    const health = calculateFinancialHealth();
-    const badge = document.getElementById('financialHealthBadge');
-    const detailBadge = document.getElementById('financialDetailBadge');
+document.getElementById('gajianForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
     
-    if (badge) {
-        badge.className = `badge ${health.class}`;
-        badge.innerHTML = health.text;
-    }
-    
-    if (detailBadge) {
-        detailBadge.className = `badge ${health.class}`;
-        detailBadge.innerHTML = health.detail;
-    }
-}
+    const perusahaan = document.getElementById('gajianPerusahaan').value;
+    const nominal = parseRupiah(document.getElementById('gajianNominal').value);
+    const tanggal = document.getElementById('gajianTanggal').value;
+    const rekeningId = document.getElementById('gajianRekening').value;
 
-// ==================== TARGET FUNCTIONS ====================
-function addTarget() {
-    const name = document.getElementById('targetName').value.trim();
-    const amount = getNumericValue(document.getElementById('targetAmount'));
-    const priority = document.getElementById('targetPriority').value;
-
-    if (!name || !amount || amount <= 0) {
-        alert('Harap lengkapi data target dengan benar!');
+    if (!perusahaan || !nominal || !tanggal || !rekeningId) {
+        alert('Harap lengkapi semua data!');
         return;
     }
 
-    const now = new Date();
-    targets.push({
+    gajian.push({
         id: Date.now(),
-        name: name,
-        targetAmount: amount,
-        currentAmount: 0,
-        priority: priority,
-        status: 'active',
-        dateAdded: now.toLocaleDateString('id-ID'),
-        lastUpdate: now.toLocaleDateString('id-ID')
+        perusahaan: perusahaan,
+        nominal: nominal,
+        tanggal: tanggal,
+        rekeningId: parseInt(rekeningId),
+        status: 'belum',
+        createdAt: new Date().toISOString()
     });
 
-    saveTargets();
-    filterTargets();
-    updateSummary();
-    
-    // Reset form
-    document.getElementById('targetName').value = '';
-    document.getElementById('targetAmount').value = '';
-}
+    saveGajian();
+    renderGajian();
+    this.reset();
+});
 
-function updateTargetProgress(id) {
-    const newAmount = parseInt(prompt('Masukkan progress terbaru (Rp):'));
-    if (isNaN(newAmount) || newAmount < 0) return;
-    
-    const index = targets.findIndex(t => t.id === id);
+function markGajian(id) {
+    const index = gajian.findIndex(g => g.id === id);
     if (index !== -1) {
-        targets[index].currentAmount = newAmount;
-        targets[index].lastUpdate = new Date().toLocaleDateString('id-ID');
+        const gaji = gajian[index];
         
-        // Cek apakah target tercapai
-        if (targets[index].currentAmount >= targets[index].targetAmount) {
-            targets[index].status = 'achieved';
-            targets[index].dateAchieved = new Date().toLocaleDateString('id-ID');
-        } else {
-            targets[index].status = 'active';
+        if (gaji.status === 'belum') {
+            const bankIndex = mbanking.findIndex(b => b.id === gaji.rekeningId);
+            if (bankIndex !== -1) {
+                mbanking[bankIndex].saldo += gaji.nominal;
+                mbanking[bankIndex].lastUpdate = new Date().toLocaleDateString('id-ID');
+                
+                transactions.unshift({
+                    date: new Date().toLocaleDateString('id-ID', { 
+                        day: '2-digit', 
+                        month: '2-digit', 
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }),
+                    desc: `Gaji dari ${gaji.perusahaan}`,
+                    amount: gaji.nominal,
+                    type: 'pemasukan'
+                });
+                
+                gajian[index].status = 'sudah';
+                gajian[index].datePaid = new Date().toISOString();
+                
+                saveMBanking();
+                saveTransactions();
+                saveGajian();
+                
+                renderMBanking();
+                renderTable();
+                updateSummary();
+                updateRekeningSelect();
+            }
         }
-        
-        saveTargets();
-        filterTargets();
-        updateSummary();
+    }
+    renderGajian();
+}
+
+function deleteGajian(id) {
+    if (confirm('Hapus catatan gajian?')) {
+        gajian = gajian.filter(g => g.id !== id);
+        saveGajian();
+        renderGajian();
     }
 }
 
-function deleteTarget(id) {
-    if (confirm('Apakah Anda yakin ingin menghapus target ini?')) {
-        targets = targets.filter(t => t.id !== id);
-        saveTargets();
-        filterTargets();
-        updateSummary();
-    }
-}
-
-function filterTargets() {
-    currentTargetFilter = document.getElementById('filterTarget').value;
-    currentTargetSort = document.getElementById('sortTarget').value;
-    renderTargets();
-}
-
-function renderTargets() {
-    const container = document.getElementById('targetList');
+function renderGajian() {
+    const container = document.getElementById('gajianList');
     if (!container) return;
-    
-    // Filter targets
-    let filteredTargets = targets;
-    if (currentTargetFilter === 'achieved') {
-        filteredTargets = targets.filter(t => t.status === 'achieved');
-    } else if (currentTargetFilter === 'notachieved') {
-        filteredTargets = targets.filter(t => t.status === 'active');
-    }
-    
-    // Sort targets
-    if (currentTargetSort === 'progress') {
-        filteredTargets.sort((a, b) => {
-            const progressA = (a.currentAmount / a.targetAmount) * 100;
-            const progressB = (b.currentAmount / b.targetAmount) * 100;
-            return progressB - progressA;
-        });
-    } else if (currentTargetSort === 'name') {
-        filteredTargets.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (currentTargetSort === 'amount') {
-        filteredTargets.sort((a, b) => b.targetAmount - a.targetAmount);
-    }
     
     container.innerHTML = '';
     
-    if (filteredTargets.length === 0) {
-        container.innerHTML = '<div class="col-12"><p class="text-muted text-center small">Belum ada target</p></div>';
+    if (gajian.length === 0) {
+        container.innerHTML = '<p class="text-muted small text-center">Belum ada catatan gajian</p>';
         return;
     }
     
-    // Hitung total kekayaan bersih untuk cek target
-    const totalCash = transactions.filter(t => t.type === 'pemasukan').reduce((acc, t) => acc + t.amount, 0) - 
-                     transactions.filter(t => t.type === 'pengeluaran').reduce((acc, t) => acc + t.amount, 0);
-    const totalMBanking = mbanking.reduce((acc, m) => acc + m.saldo, 0);
-    const totalInvestments = investments.reduce((acc, inv) => acc + inv.totalValue, 0);
-    const totalUtangAktif = utang.filter(u => u.status === 'active').reduce((acc, u) => acc + u.amount, 0);
-    const totalWealth = totalCash + totalMBanking + totalInvestments - totalUtangAktif;
+    gajian.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
     
-    filteredTargets.forEach(t => {
-        const progress = (t.currentAmount / t.targetAmount) * 100;
-        const isAchieved = t.status === 'achieved';
-        const canBuy = totalWealth >= t.targetAmount && !isAchieved;
-        
-        // Warna berdasarkan prioritas
-        let priorityColor = '';
-        if (t.priority === 'high') priorityColor = '#e74c3c';
-        else if (t.priority === 'medium') priorityColor = '#f39c12';
-        else priorityColor = '#3498db';
+    gajian.forEach(g => {
+        const bank = mbanking.find(b => b.id === g.rekeningId);
+        const bankName = bank ? bank.bankName : 'Rekening tidak ditemukan';
         
         container.innerHTML += `
-            <div class="col-12 col-md-6">
-                <div class="card ${isAchieved ? 'border-success' : ''} mb-2">
-                    <div class="card-body p-2">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <h6 class="mb-1">
-                                    ${t.name}
-                                    ${canBuy ? '<span class="badge bg-success ms-2"><i class="fas fa-check-circle"></i> Dapat Dibeli!</span>' : ''}
-                                    ${isAchieved ? '<span class="badge bg-success ms-2"><i class="fas fa-trophy"></i> Tercapai!</span>' : ''}
-                                </h6>
-                                <small class="text-muted">
-                                    <span class="badge" style="background-color: ${priorityColor}20; color: ${priorityColor}">
-                                        ${t.priority === 'high' ? 'Prioritas Tinggi' : t.priority === 'medium' ? 'Prioritas Sedang' : 'Prioritas Rendah'}
-                                    </span>
-                                </small>
-                                <br>
-                                <small class="text-muted">Target: Rp ${formatRupiah(t.targetAmount)}</small>
-                                <br>
-                                <small class="text-muted">Terkumpul: Rp ${formatRupiah(t.currentAmount)}</small>
-                            </div>
-                            <div class="text-end">
-                                <h6 class="${isAchieved ? 'text-success' : 'text-primary'} fw-bold">
-                                    ${progress.toFixed(1)}%
-                                </h6>
-                                <div class="mt-1">
-                                    <button class="btn btn-sm btn-warning btn-circle" onclick="updateTargetProgress(${t.id})" title="Update Progress">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-danger btn-circle" onclick="deleteTarget(${t.id})" title="Hapus">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Progress Bar dengan Persentase -->
-                        <div class="progress mt-2" style="height: 10px;">
-                            <div class="progress-bar ${isAchieved ? 'bg-success' : (progress >= 100 ? 'bg-success' : 'bg-primary')}" 
-                                 role="progressbar" 
-                                 style="width: ${Math.min(progress, 100)}%;" 
-                                 aria-valuenow="${Math.min(progress, 100)}" 
-                                 aria-valuemin="0" 
-                                 aria-valuemax="100">
-                                ${progress >= 10 ? progress.toFixed(1) + '%' : ''}
-                            </div>
-                        </div>
-                        
-                        <!-- Info Tambahan -->
-                        <div class="d-flex justify-content-between mt-1">
-                            <small class="text-muted">Ditambahkan: ${t.dateAdded}</small>
-                            ${!isAchieved ? `
-                                <small class="text-${canBuy ? 'success' : 'muted'} fw-bold">
-                                    ${canBuy ? '<i class="fas fa-check-circle"></i> Dana cukup!' : 'Kurang: Rp ' + formatRupiah(t.targetAmount - t.currentAmount)}
-                                </small>
-                            ` : ''}
-                        </div>
+            <div class="gajian-item ${g.status === 'sudah' ? 'gajian-sudah' : ''}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="fw-bold">${g.perusahaan}</span>
+                        <br>
+                        <small class="text-muted">${new Date(g.tanggal).toLocaleDateString('id-ID')} · ${bankName}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="fw-bold gajian-nominal">${formatRupiah(g.nominal)}</span>
+                        <br>
+                        <small class="text-muted">(${formatNumber(g.nominal)})</small>
+                        <br>
+                        ${g.status === 'belum' ? `
+                            <button class="btn btn-sm btn-success mt-1" onclick="markGajian(${g.id})">
+                                <i class="fas fa-check"></i> Sudah
+                            </button>
+                        ` : `
+                            <span class="badge bg-secondary mt-1">Sudah</span>
+                        `}
+                        <button class="btn btn-sm btn-danger mt-1" onclick="deleteGajian(${g.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </div>
                 </div>
             </div>
         `;
     });
-    
-    // Update total target display
-    const totalTarget = targets.reduce((acc, t) => acc + t.targetAmount, 0);
-    document.getElementById('totalTargetDisplay').textContent = `Total Target: Rp ${formatRupiah(totalTarget)}`;
-}
-
-// ==================== UTANG FUNCTIONS ====================
-function addUtang() {
-    const name = document.getElementById('utangName').value.trim();
-    const amount = getNumericValue(document.getElementById('utangAmount'));
-    const dueDate = document.getElementById('utangDueDate').value;
-
-    if (!name || !amount || amount <= 0) {
-        alert('Harap lengkapi data utang dengan benar!');
-        return;
-    }
-
-    const now = new Date();
-    utang.push({
-        id: Date.now(),
-        name: name,
-        amount: amount,
-        dueDate: dueDate || 'Tanpa jatuh tempo',
-        status: 'active',
-        dateAdded: now.toLocaleDateString('id-ID'),
-        lastUpdate: now.toLocaleDateString('id-ID')
-    });
-
-    saveUtang();
-    filterUtang();
-    updateSummary();
-    
-    // Reset form
-    document.getElementById('utangName').value = '';
-    document.getElementById('utangAmount').value = '';
-    document.getElementById('utangDueDate').value = '';
-}
-
-function markUtangAsLunas(id) {
-    if (confirm('Tandai utang ini sebagai lunas?')) {
-        const index = utang.findIndex(u => u.id === id);
-        if (index !== -1) {
-            utang[index].status = 'lunas';
-            utang[index].dateLunas = new Date().toLocaleDateString('id-ID');
-            utang[index].lastUpdate = new Date().toLocaleDateString('id-ID');
-            saveUtang();
-            filterUtang();
-            updateSummary();
-        }
-    }
-}
-
-function deleteUtang(id) {
-    if (confirm('Apakah Anda yakin ingin menghapus catatan utang ini?')) {
-        utang = utang.filter(u => u.id !== id);
-        saveUtang();
-        filterUtang();
-        updateSummary();
-    }
-}
-
-function filterUtang() {
-    currentUtangFilter = document.getElementById('filterUtang').value;
-    renderUtang();
-}
-
-function renderUtang() {
-    const container = document.getElementById('utangList');
-    if (!container) return;
-    
-    // Filter utang
-    let filteredUtang = utang;
-    if (currentUtangFilter === 'active') {
-        filteredUtang = utang.filter(u => u.status === 'active');
-    } else if (currentUtangFilter === 'lunas') {
-        filteredUtang = utang.filter(u => u.status === 'lunas');
-    }
-    
-    // Urutkan: yang aktif di atas, lalu tenggat waktu terdekat
-    filteredUtang.sort((a, b) => {
-        if (a.status === 'active' && b.status !== 'active') return -1;
-        if (a.status !== 'active' && b.status === 'active') return 1;
-        return new Date(a.dueDate) - new Date(b.dueDate);
-    });
-    
-    container.innerHTML = '';
-    
-    if (filteredUtang.length === 0) {
-        container.innerHTML = '<div class="col-12"><p class="text-muted text-center small">Belum ada catatan utang</p></div>';
-        return;
-    }
-    
-    filteredUtang.forEach(u => {
-        const isActive = u.status === 'active';
-        const cardClass = isActive ? 'border-danger' : 'border-success';
-        
-        // Cek jatuh tempo
-        const today = new Date();
-        const due = new Date(u.dueDate);
-        const isOverdue = isActive && u.dueDate !== 'Tanpa jatuh tempo' && due < today;
-        
-        container.innerHTML += `
-            <div class="col-12 col-md-6">
-                <div class="card ${cardClass} mb-2">
-                    <div class="card-body p-2">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <h6 class="mb-1">${u.name}</h6>
-                                <small class="text-muted">Ditambahkan: ${u.dateAdded}</small>
-                                ${u.dueDate !== 'Tanpa jatuh tempo' ? `
-                                    <br><small class="${isOverdue ? 'text-danger fw-bold' : 'text-muted'}">
-                                        <i class="fas fa-calendar-alt me-1"></i>Jatuh tempo: ${u.dueDate}
-                                        ${isOverdue ? ' (Terlewat)' : ''}
-                                    </small>
-                                ` : ''}
-                                ${u.status === 'lunas' ? `
-                                    <br><small class="text-success">Lunas: ${u.dateLunas}</small>
-                                ` : ''}
-                            </div>
-                            <div class="text-end">
-                                <h6 class="${isActive ? 'text-danger' : 'text-success'} fw-bold">
-                                    Rp ${formatRupiah(u.amount)}
-                                </h6>
-                                <div class="mt-1">
-                                    ${isActive ? `
-                                        <button class="btn btn-sm btn-success btn-circle" onclick="markUtangAsLunas(${u.id})" title="Tandai Lunas">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                    ` : ''}
-                                    <button class="btn btn-sm btn-danger btn-circle" onclick="deleteUtang(${u.id})" title="Hapus">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="progress mt-2" style="height: 5px;">
-                            <div class="progress-bar ${isActive ? 'bg-danger' : 'bg-success'}" style="width: 100%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-    
-    // Update total display
-    const totalUtangAktif = utang.filter(u => u.status === 'active').reduce((acc, u) => acc + u.amount, 0);
-    const totalUtangLunas = utang.filter(u => u.status === 'lunas').reduce((acc, u) => acc + u.amount, 0);
-    
-    document.getElementById('totalUtangDisplay').textContent = `Total Utang Aktif: Rp ${formatRupiah(totalUtangAktif)}`;
-    document.getElementById('totalUtangAktif').textContent = `Rp ${formatRupiah(totalUtangAktif)}`;
-    document.getElementById('totalUtangLunas').textContent = `Rp ${formatRupiah(totalUtangLunas)}`;
 }
 
 // ==================== M-BANKING FUNCTIONS ====================
-function getBankClass(bankName) {
-    const bankClasses = {
-        'BCA': 'bank-bca',
-        'Mandiri': 'bank-mandiri',
-        'BRI': 'bank-bri',
-        'BNI': 'bank-bni',
-        'CIMB Niaga': 'bank-cimb',
-        'Danamon': 'bank-danamon',
-        'Permata': 'bank-permata',
-        'Maybank': 'bank-maybank',
-        'Bank Lain': 'bank-lain'
-    };
-    return bankClasses[bankName] || 'bank-lain';
-}
-
 function addMBanking() {
     const bankName = document.getElementById('bankSelect').value;
-    const saldo = getNumericValue(document.getElementById('mbankingSaldo'));
+    const saldo = parseRupiah(document.getElementById('mbankingSaldo').value);
 
     if (!saldo || saldo <= 0) {
         alert('Harap masukkan saldo dengan benar!');
@@ -516,7 +220,7 @@ function addMBanking() {
     const existingBank = mbanking.find(m => m.bankName === bankName);
     
     if (existingBank) {
-        if (confirm(`Bank ${bankName} sudah ada dengan saldo Rp ${formatRupiah(existingBank.saldo)}. Update saldo?`)) {
+        if (confirm(`Update saldo ${bankName} dari ${formatRupiah(existingBank.saldo)} menjadi ${formatRupiah(saldo)}?`)) {
             existingBank.saldo = saldo;
             existingBank.lastUpdate = new Date().toLocaleDateString('id-ID');
         }
@@ -530,274 +234,680 @@ function addMBanking() {
     }
 
     saveMBanking();
-    filterMBanking();
+    renderMBanking();
+    updateRekeningSelect();
     updateSummary();
     document.getElementById('mbankingSaldo').value = '';
 }
 
-function updateMBankingSaldo(id) {
-    const newSaldo = parseInt(prompt('Masukkan saldo terbaru:'));
-    if (isNaN(newSaldo) || newSaldo < 0) return;
-    
-    const index = mbanking.findIndex(m => m.id === id);
-    if (index !== -1) {
-        mbanking[index].saldo = newSaldo;
-        mbanking[index].lastUpdate = new Date().toLocaleDateString('id-ID');
-        saveMBanking();
-        filterMBanking();
-        updateSummary();
-    }
-}
-
 function deleteMBanking(id) {
-    if (confirm('Apakah Anda yakin ingin menghapus akun M-Banking ini?')) {
+    if (confirm('Hapus rekening ini?')) {
         mbanking = mbanking.filter(m => m.id !== id);
         saveMBanking();
-        filterMBanking();
+        renderMBanking();
+        updateRekeningSelect();
         updateSummary();
     }
-}
-
-function filterMBanking() {
-    currentBankFilter = document.getElementById('filterBank').value;
-    renderMBanking();
 }
 
 function renderMBanking() {
     const container = document.getElementById('mbankingList');
     if (!container) return;
     
-    // Filter banks
-    let filteredBanks = mbanking;
-    if (currentBankFilter !== 'all') {
-        filteredBanks = mbanking.filter(m => m.bankName === currentBankFilter);
-    }
-    
     container.innerHTML = '';
     
-    if (filteredBanks.length === 0) {
-        container.innerHTML = '<div class="col-12"><p class="text-muted text-center small">Belum ada akun M-Banking</p></div>';
+    if (mbanking.length === 0) {
+        container.innerHTML = '<p class="text-muted small text-center">Belum ada rekening</p>';
         return;
     }
     
-    filteredBanks.forEach(m => {
-        const bankClass = getBankClass(m.bankName);
+    mbanking.forEach(m => {
+        const bankClass = `bank-${m.bankName.replace(/\s+/g, '')}`;
         container.innerHTML += `
-            <div class="col-12 col-sm-6 col-lg-4">
+            <div class="col-12 col-md-6">
                 <div class="bank-item ${bankClass}">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <h6 class="mb-2"><i class="fas fa-university me-2"></i>${m.bankName}</h6>
-                        <div class="d-flex gap-1">
-                            <button class="btn btn-sm btn-light btn-circle" onclick="updateMBankingSaldo(${m.id})">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger btn-circle" onclick="deleteMBanking(${m.id})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
+                    <div class="d-flex justify-content-between">
+                        <div class="bank-nama">${m.bankName}</div>
+                        <button class="btn btn-sm btn-light btn-circle" onclick="deleteMBanking(${m.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </div>
-                    <div class="saldo">
-                        Rp ${formatRupiah(m.saldo)}
-                    </div>
-                    <small>Update: ${m.lastUpdate}</small>
+                    <div class="bank-saldo">${formatRupiah(m.saldo)}</div>
+                    <small>${formatNumber(m.saldo)} · Update: ${m.lastUpdate}</small>
                 </div>
             </div>
         `;
     });
-    
-    // Update total display
-    const totalMBanking = mbanking.reduce((acc, m) => acc + m.saldo, 0);
-    document.getElementById('totalMBankingDisplay').textContent = `Total: Rp ${formatRupiah(totalMBanking)}`;
 }
 
-// ==================== INVESTMENT FUNCTIONS ====================
-function addInvestmentType() {
-    const newType = prompt('Masukkan nama jenis investasi baru:');
-    if (newType && newType.trim() !== '') {
-        const typeId = newType.toLowerCase().replace(/\s+/g, '');
-        if (!investmentTypes.includes(typeId)) {
-            investmentTypes.push(typeId);
-            saveInvestmentTypes();
-            updateInvestmentSelects();
-            filterInvestments();
-            alert(`Jenis investasi "${newType}" berhasil ditambahkan!`);
-        } else {
-            alert('Jenis investasi sudah ada!');
-        }
-    }
-}
+// ==================== SAHAM FUNCTIONS ====================
+function addSaham() {
+    const kode = document.getElementById('sahamKode').value.toUpperCase();
+    const nama = document.getElementById('sahamNama').value;
+    const lot = parseFloat(document.getElementById('sahamLot').value);
+    const harga = parseRupiah(document.getElementById('sahamHarga').value);
 
-function updateInvestmentSelects() {
-    const typeSelect = document.getElementById('investmentType');
-    if (typeSelect) {
-        typeSelect.innerHTML = '';
-        investmentTypes.forEach(type => {
-            const option = document.createElement('option');
-            option.value = type;
-            option.textContent = type.charAt(0).toUpperCase() + type.slice(1);
-            typeSelect.appendChild(option);
-        });
-    }
-    
-    const filterSelect = document.getElementById('filterInvestmentType');
-    if (filterSelect) {
-        filterSelect.innerHTML = '<option value="all">Semua</option>';
-        investmentTypes.forEach(type => {
-            const option = document.createElement('option');
-            option.value = type;
-            option.textContent = type.charAt(0).toUpperCase() + type.slice(1);
-            filterSelect.appendChild(option);
-        });
-    }
-}
-
-function addInvestment() {
-    const type = document.getElementById('investmentType').value;
-    const name = document.getElementById('investmentName').value.trim();
-    const value = getNumericValue(document.getElementById('investmentValue'));
-    const quantity = parseFloat(document.getElementById('investmentQuantity').value) || 1;
-
-    if (!name || !value || value <= 0) {
-        alert('Harap lengkapi data investasi dengan benar!');
+    if (!kode || !nama || !lot || !harga) {
+        alert('Harap lengkapi data saham!');
         return;
     }
 
-    investments.push({
+    const lembar = lot * 100;
+    const totalNilai = harga * lembar;
+
+    saham.push({
         id: Date.now(),
-        type: type,
-        name: name,
-        value: value,
-        quantity: quantity,
-        totalValue: value * quantity,
-        date: new Date().toLocaleDateString('id-ID'),
-        lastUpdate: new Date().toLocaleDateString('id-ID')
+        kode: kode,
+        nama: nama,
+        lot: lot,
+        lotDisplay: lot.toFixed(2),
+        lembar: lembar,
+        hargaPerLembar: harga,
+        totalNilai: totalNilai,
+        date: new Date().toLocaleDateString('id-ID')
     });
 
-    saveInvestments();
-    filterInvestments();
+    saveSaham();
+    renderSaham();
     updateSummary();
     
-    document.getElementById('investmentName').value = '';
-    document.getElementById('investmentValue').value = '';
-    document.getElementById('investmentQuantity').value = '1';
+    document.getElementById('sahamKode').value = '';
+    document.getElementById('sahamNama').value = '';
+    document.getElementById('sahamLot').value = '';
+    document.getElementById('sahamHarga').value = '';
 }
 
-function deleteInvestment(id) {
-    if (confirm('Apakah Anda yakin ingin menghapus investasi ini?')) {
-        investments = investments.filter(inv => inv.id !== id);
-        saveInvestments();
-        filterInvestments();
-        updateSummary();
-    }
-}
-
-function updateInvestmentValue(id) {
-    const newValue = parseInt(prompt('Masukkan nilai terbaru per unit:'));
-    if (isNaN(newValue) || newValue < 0) return;
+function updateSaham(id) {
+    const sahamItem = saham.find(s => s.id === id);
+    if (!sahamItem) return;
     
-    const index = investments.findIndex(inv => inv.id === id);
-    if (index !== -1) {
-        investments[index].value = newValue;
-        investments[index].totalValue = newValue * investments[index].quantity;
-        investments[index].lastUpdate = new Date().toLocaleDateString('id-ID');
-        saveInvestments();
-        filterInvestments();
+    const newLot = parseFloat(prompt('Masukkan lot terbaru:', sahamItem.lot));
+    if (isNaN(newLot) || newLot < 0) return;
+    
+    const newHarga = parseInt(prompt('Masukkan harga per lembar terbaru (Rp):', sahamItem.hargaPerLembar));
+    if (isNaN(newHarga) || newHarga < 0) return;
+    
+    sahamItem.lot = newLot;
+    sahamItem.lotDisplay = newLot.toFixed(2);
+    sahamItem.lembar = newLot * 100;
+    sahamItem.hargaPerLembar = newHarga;
+    sahamItem.totalNilai = newHarga * (newLot * 100);
+    sahamItem.lastUpdate = new Date().toLocaleDateString('id-ID');
+    
+    saveSaham();
+    renderSaham();
+    updateSummary();
+}
+
+function deleteSaham(id) {
+    if (confirm('Hapus saham ini?')) {
+        saham = saham.filter(s => s.id !== id);
+        saveSaham();
+        renderSaham();
         updateSummary();
     }
 }
 
-function filterInvestments() {
-    currentInvestmentFilter = document.getElementById('filterInvestmentType').value;
-    currentSortInvestment = document.getElementById('sortInvestment').value;
-    renderInvestments();
-}
-
-function renderInvestments() {
-    const container = document.getElementById('investmentList');
+function renderSaham() {
+    const container = document.getElementById('sahamList');
     if (!container) return;
-    
-    // Filter investments
-    let filteredInvestments = investments;
-    if (currentInvestmentFilter !== 'all') {
-        filteredInvestments = investments.filter(inv => inv.type === currentInvestmentFilter);
-    }
-    
-    // Sort investments
-    if (currentSortInvestment === 'name') {
-        filteredInvestments.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (currentSortInvestment === 'value') {
-        filteredInvestments.sort((a, b) => b.totalValue - a.totalValue);
-    } else if (currentSortInvestment === 'type') {
-        filteredInvestments.sort((a, b) => a.type.localeCompare(b.type));
-    }
     
     container.innerHTML = '';
     
-    if (filteredInvestments.length === 0) {
-        container.innerHTML = '<div class="col-12"><p class="text-muted text-center small">Belum ada data investasi</p></div>';
+    if (saham.length === 0) {
+        container.innerHTML = '<p class="text-muted small text-center">Belum ada saham</p>';
         return;
     }
     
-    const colors = ['#4361ee', '#f72585', '#4cc9f0', '#f9c74f', '#7209b7'];
+    saham.sort((a, b) => b.totalNilai - a.totalNilai);
     
-    filteredInvestments.forEach(inv => {
-        const colorIndex = investmentTypes.indexOf(inv.type) % colors.length;
-        
+    saham.forEach(s => {
         container.innerHTML += `
-            <div class="col-12 col-sm-6 col-lg-4">
-                <div class="investment-card" style="border-left-color: ${colors[colorIndex]}">
-                    <div class="d-flex justify-content-between align-items-start">
+            <div class="col-12 col-md-6">
+                <div class="invest-card saham-item">
+                    <div class="invest-header">
                         <div>
-                            <h6 class="mb-1">${inv.name}</h6>
-                            <small class="text-muted">${inv.type} · ${inv.quantity} unit</small>
+                            <span class="invest-kode">${s.kode}</span>
+                            <div class="invest-detail">${s.nama}</div>
                         </div>
-                        <div class="d-flex gap-1">
-                            <button class="btn btn-sm btn-warning btn-circle" onclick="updateInvestmentValue(${inv.id})">
+                        <div>
+                            <button class="btn btn-sm btn-warning btn-circle" onclick="updateSaham(${s.id})">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-sm btn-danger btn-circle" onclick="deleteInvestment(${inv.id})">
+                            <button class="btn btn-sm btn-danger btn-circle" onclick="deleteSaham(${s.id})">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
                     </div>
-                    <div class="d-flex justify-content-between align-items-center mt-2">
-                        <small>@ Rp ${formatRupiah(inv.value)}</small>
-                        <span class="price">Rp ${formatRupiah(inv.totalValue)}</span>
+                    
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <small class="text-muted">Lot</small>
+                            <div class="fw-bold">${s.lotDisplay}</div>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted">Lembar</small>
+                            <div class="fw-bold">${formatNumber(s.lembar)}</div>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted">Harga/lbr</small>
+                            <div class="fw-bold">${formatNumber(s.hargaPerLembar)}</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <small class="text-muted">Total Nilai</small>
+                                <span class="invest-nilai">${formatRupiah(s.totalNilai)}</span>
+                            </div>
+                            <small class="text-muted d-block text-end">(${formatNumber(s.totalNilai)})</small>
+                        </div>
                     </div>
-                    <small class="text-muted d-block mt-1">Update: ${inv.lastUpdate}</small>
+                    
+                    <div class="mt-1 text-muted small">
+                        <i class="fas fa-calendar-alt me-1"></i> ${s.date}
+                        ${s.lastUpdate ? ` · Update: ${s.lastUpdate}` : ''}
+                    </div>
                 </div>
             </div>
         `;
     });
-    
-    // Update total display
-    const totalInvestments = investments.reduce((acc, inv) => acc + inv.totalValue, 0);
-    document.getElementById('totalInvestmentsDisplay').textContent = `Total: Rp ${formatRupiah(totalInvestments)}`;
 }
 
-function renderInvestmentSummaryCards() {
-    const container = document.getElementById('investmentSummaryCards');
+// ==================== EMAS FUNCTIONS ====================
+function addEmas() {
+    const nama = document.getElementById('emasNama').value;
+    const gram = parseFloat(document.getElementById('emasGram').value);
+    const hargaPerGram = parseRupiah(document.getElementById('emasHarga').value);
+
+    if (!nama || !gram || !hargaPerGram) {
+        alert('Harap lengkapi data emas!');
+        return;
+    }
+
+    // Hitung harga per 0.01 gram
+    const hargaPer001Gram = hargaPerGram / 100;
+    
+    // Total nilai = gram * harga per gram
+    const totalNilai = gram * hargaPerGram;
+
+    emas.push({
+        id: Date.now(),
+        nama: nama,
+        gram: gram,
+        gramDisplay: gram.toFixed(2),
+        hargaPerGram: hargaPerGram,
+        hargaPer001Gram: hargaPer001Gram,
+        totalNilai: totalNilai,
+        date: new Date().toLocaleDateString('id-ID')
+    });
+
+    saveEmas();
+    renderEmas();
+    updateSummary();
+    
+    document.getElementById('emasNama').value = '';
+    document.getElementById('emasGram').value = '';
+    document.getElementById('emasHarga').value = '';
+}
+
+function updateEmas(id) {
+    const emasItem = emas.find(e => e.id === id);
+    if (!emasItem) return;
+    
+    const newGram = parseFloat(prompt('Masukkan gram terbaru:', emasItem.gram));
+    if (isNaN(newGram) || newGram < 0) return;
+    
+    const newHarga = parseInt(prompt('Masukkan harga per gram terbaru (Rp):', emasItem.hargaPerGram));
+    if (isNaN(newHarga) || newHarga < 0) return;
+    
+    emasItem.gram = newGram;
+    emasItem.gramDisplay = newGram.toFixed(2);
+    emasItem.hargaPerGram = newHarga;
+    emasItem.hargaPer001Gram = newHarga / 100;
+    emasItem.totalNilai = newGram * newHarga;
+    emasItem.lastUpdate = new Date().toLocaleDateString('id-ID');
+    
+    saveEmas();
+    renderEmas();
+    updateSummary();
+}
+
+function deleteEmas(id) {
+    if (confirm('Hapus emas ini?')) {
+        emas = emas.filter(e => e.id !== id);
+        saveEmas();
+        renderEmas();
+        updateSummary();
+    }
+}
+
+function renderEmas() {
+    const container = document.getElementById('emasList');
     if (!container) return;
     
     container.innerHTML = '';
     
-    investmentTypes.forEach(type => {
-        const total = investments.filter(inv => inv.type === type)
-            .reduce((acc, inv) => acc + inv.totalValue, 0);
-        
-        const colors = {
-            'emas': '#ffd700',
-            'saham': '#00b4d8'
-        };
-        const color = colors[type] || '#7209b7';
+    if (emas.length === 0) {
+        container.innerHTML = '<p class="text-muted small text-center">Belum ada emas</p>';
+        return;
+    }
+    
+    emas.sort((a, b) => b.totalNilai - a.totalNilai);
+    
+    emas.forEach(e => {
+        const nilaiPer001Gram = e.hargaPer001Gram;
         
         container.innerHTML += `
-            <div class="col-6 col-md-3">
-                <div class="card summary-card h-100" style="border-left-color: ${color}">
-                    <div class="card-body p-2 p-md-3">
-                        <h6 class="card-title small"><i class="fas fa-chart-line me-1" style="color: ${color}"></i>${type.charAt(0).toUpperCase() + type.slice(1)}</h6>
-                        <p class="card-text fs-6 fs-md-5 fw-bold mb-0" id="total${type.charAt(0).toUpperCase() + type.slice(1)}">Rp ${formatRupiah(total)}</p>
+            <div class="col-12 col-md-6">
+                <div class="invest-card emas-item">
+                    <div class="invest-header">
+                        <div>
+                            <span class="invest-kode">${e.nama}</span>
+                            <div class="invest-detail">Emas Batangan</div>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-warning btn-circle" onclick="updateEmas(${e.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger btn-circle" onclick="deleteEmas(${e.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
+                    
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <small class="text-muted">Berat</small>
+                            <div class="fw-bold">${e.gramDisplay} gram</div>
+                            <small class="text-muted">(0.01g = ${formatNumber(nilaiPer001Gram)})</small>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Harga/gram</small>
+                            <div class="fw-bold">${formatNumber(e.hargaPerGram)}</div>
+                            <small class="text-muted">${formatRupiah(e.hargaPerGram)}</small>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <small class="text-muted">Total Nilai</small>
+                                <span class="invest-nilai">${formatRupiah(e.totalNilai)}</span>
+                            </div>
+                            <small class="text-muted d-block text-end">(${formatNumber(e.totalNilai)})</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-2">
+                        <small class="text-muted">Detail Harga:</small>
+                        <div class="d-flex justify-content-between small">
+                            <span>0.01g: ${formatNumber(nilaiPer001Gram)}</span>
+                            <span>1g: ${formatNumber(e.hargaPerGram)}</span>
+                            <span>10g: ${formatNumber(e.hargaPerGram * 10)}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-1 text-muted small">
+                        <i class="fas fa-calendar-alt me-1"></i> ${e.date}
+                        ${e.lastUpdate ? ` · Update: ${e.lastUpdate}` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+// ==================== INVESTASI LAIN FUNCTIONS ====================
+function addInvestasiLain() {
+    const jenis = document.getElementById('investasiLainJenis').value;
+    const nama = document.getElementById('investasiLainNama').value;
+    const jumlah = parseFloat(document.getElementById('investasiLainJumlah').value);
+    const nilai = parseRupiah(document.getElementById('investasiLainNilai').value);
+
+    if (!nama || !jumlah || !nilai) {
+        alert('Harap lengkapi data investasi!');
+        return;
+    }
+
+    const totalNilai = jumlah * nilai;
+
+    investasiLain.push({
+        id: Date.now(),
+        jenis: jenis,
+        nama: nama,
+        jumlah: jumlah,
+        nilaiPerUnit: nilai,
+        totalNilai: totalNilai,
+        date: new Date().toLocaleDateString('id-ID')
+    });
+
+    saveInvestasiLain();
+    renderInvestasiLain();
+    updateSummary();
+    
+    document.getElementById('investasiLainNama').value = '';
+    document.getElementById('investasiLainJumlah').value = '';
+    document.getElementById('investasiLainNilai').value = '';
+}
+
+function updateInvestasiLain(id) {
+    const item = investasiLain.find(i => i.id === id);
+    if (!item) return;
+    
+    const newJumlah = parseFloat(prompt('Masukkan jumlah terbaru:', item.jumlah));
+    if (isNaN(newJumlah) || newJumlah < 0) return;
+    
+    const newNilai = parseInt(prompt('Masukkan nilai per unit terbaru (Rp):', item.nilaiPerUnit));
+    if (isNaN(newNilai) || newNilai < 0) return;
+    
+    item.jumlah = newJumlah;
+    item.nilaiPerUnit = newNilai;
+    item.totalNilai = newJumlah * newNilai;
+    item.lastUpdate = new Date().toLocaleDateString('id-ID');
+    
+    saveInvestasiLain();
+    renderInvestasiLain();
+    updateSummary();
+}
+
+function deleteInvestasiLain(id) {
+    if (confirm('Hapus investasi ini?')) {
+        investasiLain = investasiLain.filter(i => i.id !== id);
+        saveInvestasiLain();
+        renderInvestasiLain();
+        updateSummary();
+    }
+}
+
+function renderInvestasiLain() {
+    const container = document.getElementById('investasiLainList');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (investasiLain.length === 0) {
+        container.innerHTML = '<p class="text-muted small text-center">Belum ada investasi lain</p>';
+        return;
+    }
+    
+    investasiLain.sort((a, b) => b.totalNilai - a.totalNilai);
+    
+    investasiLain.forEach(i => {
+        const jenisLabel = {
+            'reksadana': 'Reksadana',
+            'obligasi': 'Obligasi',
+            'properti': 'Properti',
+            'kripto': 'Kripto',
+            'other': 'Lainnya'
+        }[i.jenis] || i.jenis;
+        
+        container.innerHTML += `
+            <div class="col-12 col-md-6">
+                <div class="invest-card" style="border-left-color: #7209b7;">
+                    <div class="invest-header">
+                        <div>
+                            <span class="invest-kode">${i.nama}</span>
+                            <div class="invest-detail">${jenisLabel}</div>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-warning btn-circle" onclick="updateInvestasiLain(${i.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger btn-circle" onclick="deleteInvestasiLain(${i.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <small class="text-muted">Jumlah</small>
+                            <div class="fw-bold">${i.jumlah} unit</div>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Nilai/unit</small>
+                            <div class="fw-bold">${formatNumber(i.nilaiPerUnit)}</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <small class="text-muted">Total Nilai</small>
+                                <span class="invest-nilai">${formatRupiah(i.totalNilai)}</span>
+                            </div>
+                            <small class="text-muted d-block text-end">(${formatNumber(i.totalNilai)})</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-1 text-muted small">
+                        <i class="fas fa-calendar-alt me-1"></i> ${i.date}
+                        ${i.lastUpdate ? ` · Update: ${i.lastUpdate}` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+// ==================== UTANG FUNCTIONS ====================
+function addUtang() {
+    const name = document.getElementById('utangName').value.trim();
+    const amount = parseRupiah(document.getElementById('utangAmount').value);
+    const dueDate = document.getElementById('utangDueDate').value;
+    const type = document.getElementById('utangType').value;
+
+    if (!name || !amount || amount <= 0) {
+        alert('Harap lengkapi data!');
+        return;
+    }
+
+    utang.push({
+        id: Date.now(),
+        name: name,
+        amount: amount,
+        dueDate: dueDate || 'Tanpa jatuh tempo',
+        type: type,
+        status: 'active',
+        dateAdded: new Date().toLocaleDateString('id-ID')
+    });
+
+    saveUtang();
+    renderUtang();
+    updateSummary();
+    
+    document.getElementById('utangName').value = '';
+    document.getElementById('utangAmount').value = '';
+    document.getElementById('utangDueDate').value = '';
+}
+
+function markUtangAsLunas(id) {
+    const index = utang.findIndex(u => u.id === id);
+    if (index !== -1) {
+        utang[index].status = 'lunas';
+        utang[index].dateLunas = new Date().toLocaleDateString('id-ID');
+        saveUtang();
+        renderUtang();
+        updateSummary();
+    }
+}
+
+function deleteUtang(id) {
+    if (confirm('Hapus catatan ini?')) {
+        utang = utang.filter(u => u.id !== id);
+        saveUtang();
+        renderUtang();
+        updateSummary();
+    }
+}
+
+function renderUtang() {
+    const container = document.getElementById('utangList');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (utang.length === 0) {
+        container.innerHTML = '<p class="text-muted small text-center">Belum ada catatan utang/piutang</p>';
+        return;
+    }
+    
+    utang.sort((a, b) => {
+        if (a.status === 'active' && b.status !== 'active') return -1;
+        if (a.status !== 'active' && b.status === 'active') return 1;
+        return new Date(a.dueDate) - new Date(b.dueDate);
+    });
+    
+    utang.forEach(u => {
+        let cardClass = 'utang-active';
+        let typeLabel = u.type === 'utang' ? 'Utang' : 'Piutang';
+        
+        if (u.type === 'utang') {
+            cardClass = u.status === 'active' ? 'utang-active' : 'utang-lunas';
+        } else {
+            cardClass = 'piutang-active';
+        }
+        
+        container.innerHTML += `
+            <div class="col-12 col-md-6">
+                <div class="utang-card ${cardClass}">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <span class="fw-bold">${u.name}</span>
+                            <br>
+                            <small class="text-muted">${typeLabel} · Jatuh tempo: ${u.dueDate}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="fw-bold ${u.type === 'utang' ? 'text-danger' : 'text-success'}">
+                                ${formatRupiah(u.amount)}
+                            </span>
+                            <br>
+                            <small class="text-muted">(${formatNumber(u.amount)})</small>
+                            <br>
+                            ${u.type === 'utang' && u.status === 'active' ? `
+                                <button class="btn btn-sm btn-success mt-1" onclick="markUtangAsLunas(${u.id})">
+                                    Lunas
+                                </button>
+                            ` : u.status === 'lunas' ? `
+                                <span class="badge bg-success mt-1">Lunas</span>
+                            ` : ''}
+                            <button class="btn btn-sm btn-danger mt-1" onclick="deleteUtang(${u.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+// ==================== TARGET FUNCTIONS ====================
+function addTarget() {
+    const name = document.getElementById('targetName').value.trim();
+    const amount = parseRupiah(document.getElementById('targetAmount').value);
+    const priority = document.getElementById('targetPriority').value;
+
+    if (!name || !amount || amount <= 0) {
+        alert('Harap lengkapi data target!');
+        return;
+    }
+
+    targets.push({
+        id: Date.now(),
+        name: name,
+        targetAmount: amount,
+        currentAmount: 0,
+        priority: priority,
+        status: 'active',
+        dateAdded: new Date().toLocaleDateString('id-ID')
+    });
+
+    saveTargets();
+    renderTargets();
+    updateSummary();
+    
+    document.getElementById('targetName').value = '';
+    document.getElementById('targetAmount').value = '';
+}
+
+function updateTargetProgress(id) {
+    const newAmount = parseInt(prompt('Masukkan progress terbaru (Rp):'));
+    if (isNaN(newAmount) || newAmount < 0) return;
+    
+    const index = targets.findIndex(t => t.id === id);
+    if (index !== -1) {
+        targets[index].currentAmount = newAmount;
+        
+        if (targets[index].currentAmount >= targets[index].targetAmount) {
+            targets[index].status = 'achieved';
+        }
+        
+        saveTargets();
+        renderTargets();
+        updateSummary();
+    }
+}
+
+function deleteTarget(id) {
+    if (confirm('Hapus target ini?')) {
+        targets = targets.filter(t => t.id !== id);
+        saveTargets();
+        renderTargets();
+        updateSummary();
+    }
+}
+
+function renderTargets() {
+    const container = document.getElementById('targetList');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (targets.length === 0) {
+        container.innerHTML = '<p class="text-muted small text-center">Belum ada target</p>';
+        return;
+    }
+    
+    const totalWealth = calculateTotalWealth();
+    
+    targets.sort((a, b) => {
+        if (a.status === 'active' && b.status !== 'active') return -1;
+        if (a.status !== 'active' && b.status === 'active') return 1;
+        return b.targetAmount - a.targetAmount;
+    });
+    
+    targets.forEach(t => {
+        const progress = (t.currentAmount / t.targetAmount) * 100;
+        const isAchieved = t.status === 'achieved';
+        const canBuy = totalWealth >= t.targetAmount && !isAchieved;
+        
+        container.innerHTML += `
+            <div class="col-12 col-md-6">
+                <div class="target-card target-priority-${t.priority}">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <span class="fw-bold">${t.name}</span>
+                            ${canBuy ? '<span class="badge bg-success ms-2">Bisa Dibeli!</span>' : ''}
+                            ${isAchieved ? '<span class="badge bg-success ms-2">Tercapai!</span>' : ''}
+                            <br>
+                            <small class="text-muted">Target: ${formatRupiah(t.targetAmount)}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="fw-bold">${progress.toFixed(1)}%</span>
+                            <br>
+                            <button class="btn btn-sm btn-warning btn-circle mt-1" onclick="updateTargetProgress(${t.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger btn-circle mt-1" onclick="deleteTarget(${t.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="target-progress">
+                        <div class="target-progress-bar ${isAchieved ? 'achieved' : ''}" 
+                             style="width: ${Math.min(progress, 100)}%;"></div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-1">
+                        <small class="text-muted">Terkumpul: ${formatNumber(t.currentAmount)}</small>
+                        <small class="text-muted">Kurang: ${formatNumber(t.targetAmount - t.currentAmount)}</small>
+                    </div>
+                    <small class="text-muted d-block text-end">${formatRupiah(t.currentAmount)} / ${formatRupiah(t.targetAmount)}</small>
                 </div>
             </div>
         `;
@@ -807,25 +917,22 @@ function renderInvestmentSummaryCards() {
 // ==================== TRANSACTION FUNCTIONS ====================
 function addTransaction() {
     const desc = document.getElementById('desc').value.trim();
-    const amount = getNumericValue(document.getElementById('amount'));
+    const amount = parseRupiah(document.getElementById('amount').value);
     const type = document.getElementById('type').value;
 
     if (!desc || !amount || amount <= 0) {
-        alert('Harap lengkapi semua data dengan benar!');
+        alert('Harap lengkapi data!');
         return;
     }
 
-    const now = new Date();
-    const formattedDate = now.toLocaleDateString('id-ID', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-
     transactions.unshift({
-        date: formattedDate,
+        date: new Date().toLocaleDateString('id-ID', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        }),
         desc: desc,
         amount: amount,
         type: type
@@ -834,13 +941,13 @@ function addTransaction() {
     saveTransactions();
     renderTable();
     updateSummary();
+    
     document.getElementById('desc').value = '';
     document.getElementById('amount').value = '';
-    document.getElementById('desc').focus();
 }
 
 function deleteTransaction(index) {
-    if (confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) {
+    if (confirm('Hapus transaksi ini?')) {
         transactions.splice(index, 1);
         saveTransactions();
         renderTable();
@@ -850,75 +957,62 @@ function deleteTransaction(index) {
 
 function setFilter(filter) {
     currentFilter = filter;
-    currentPage = 1;
+    currentTransactionPage = 1;
     renderTable();
     
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    
-    if (filter === 'all') document.getElementById('filterAll').classList.add('active');
-    else if (filter === 'pemasukan') document.getElementById('filterIncome').classList.add('active');
-    else document.getElementById('filterExpense').classList.add('active');
+    event.target.classList.add('active');
 }
 
 function renderTable() {
     const tableBody = document.getElementById('transactionTable');
-    const pagination = document.getElementById('pagination');
-    const rowPerPage = parseInt(document.getElementById('rowPerPage').value);
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     
     let filteredTransactions = transactions.filter(trx => 
         trx.desc.toLowerCase().includes(searchTerm) || 
-        trx.amount.toString().includes(searchTerm) ||
-        trx.type.includes(searchTerm) ||
-        trx.date.toLowerCase().includes(searchTerm)
+        trx.amount.toString().includes(searchTerm)
     );
     
     if (currentFilter !== 'all') {
         filteredTransactions = filteredTransactions.filter(trx => trx.type === currentFilter);
     }
     
-    const totalPages = Math.ceil(filteredTransactions.length / rowPerPage);
-    const start = (currentPage - 1) * rowPerPage;
-    const current = filteredTransactions.slice(start, start + rowPerPage);
+    const start = (currentTransactionPage - 1) * itemsPerPage;
+    const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+    const current = filteredTransactions.slice(start, start + itemsPerPage);
 
     tableBody.innerHTML = '';
     
     if (current.length === 0) {
-        tableBody.innerHTML = `
+        tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-3">Tidak ada transaksi</td></tr>';
+        return;
+    }
+    
+    current.forEach((trx, i) => {
+        const globalIndex = transactions.findIndex(t => 
+            t.date === trx.date && t.desc === trx.desc && t.amount === trx.amount
+        );
+        
+        tableBody.innerHTML += `
             <tr>
-                <td colspan="5" class="text-center py-3 text-muted small">
-                    <i class="fas fa-info-circle"></i> Tidak ada data transaksi
+                <td>${trx.date}</td>
+                <td>${trx.desc}</td>
+                <td><span class="badge ${trx.type === 'pemasukan' ? 'bg-success' : 'bg-danger'}">
+                    ${trx.type === 'pemasukan' ? 'Masuk' : 'Keluar'}
+                </span></td>
+                <td class="${trx.type === 'pemasukan' ? 'text-success-custom' : 'text-danger-custom'} fw-bold">
+                    ${trx.type === 'pemasukan' ? '+' : '-'}${formatNumber(trx.amount)}
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-danger btn-circle" onclick="deleteTransaction(${globalIndex})">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </td>
             </tr>
         `;
-    } else {
-        current.forEach((trx, i) => {
-            const isIncome = trx.type === 'pemasukan';
-            const globalIndex = transactions.findIndex(t => 
-                t.date === trx.date && t.desc === trx.desc && t.amount === trx.amount
-            );
-            
-            tableBody.innerHTML += `
-                <tr>
-                    <td>${trx.date}</td>
-                    <td>${trx.desc}</td>
-                    <td><span class="${isIncome ? 'badge-income' : 'badge-expense'}">
-                        ${isIncome ? 'Pemasukan' : 'Pengeluaran'}
-                    </span></td>
-                    <td class="${isIncome ? 'text-success-custom' : 'text-danger-custom'} fw-bold">
-                        ${isIncome ? '+' : '-'}Rp ${formatRupiah(trx.amount)}
-                    </td>
-                    <td>
-                        <button class="btn btn-danger btn-sm" onclick="deleteTransaction(${globalIndex})">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
-        });
-    }
+    });
 
     renderPagination(totalPages);
 }
@@ -929,139 +1023,132 @@ function renderPagination(totalPages) {
     
     if (totalPages <= 1) return;
     
-    // Previous
-    pagination.innerHTML += `
-        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="goToPage(${currentPage - 1})">
-                <i class="fas fa-chevron-left"></i>
-            </a>
-        </li>
-    `;
-
-    // Page numbers
     for (let i = 1; i <= totalPages; i++) {
-        if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
-            pagination.innerHTML += `
-                <li class="page-item ${i === currentPage ? 'active' : ''}">
-                    <a class="page-link" href="#" onclick="goToPage(${i})">${i}</a>
-                </li>
-            `;
-        } else if (i === currentPage - 2 || i === currentPage + 2) {
-            pagination.innerHTML += `
-                <li class="page-item disabled">
-                    <span class="page-link">...</span>
-                </li>
-            `;
-        }
+        pagination.innerHTML += `
+            <li class="page-item ${i === currentTransactionPage ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="goToPage(${i})">${i}</a>
+            </li>
+        `;
     }
-    
-    // Next
-    pagination.innerHTML += `
-        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="goToPage(${currentPage + 1})">
-                <i class="fas fa-chevron-right"></i>
-            </a>
-        </li>
-    `;
 }
 
 function goToPage(page) {
-    const rowPerPage = parseInt(document.getElementById('rowPerPage').value);
-    const filteredCount = transactions.filter(trx => {
-        if (currentFilter !== 'all' && trx.type !== currentFilter) return false;
-        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-        return trx.desc.toLowerCase().includes(searchTerm) || 
-               trx.amount.toString().includes(searchTerm) ||
-               trx.type.includes(searchTerm) ||
-               trx.date.toLowerCase().includes(searchTerm);
-    }).length;
-    
-    const totalPages = Math.ceil(filteredCount / rowPerPage);
-    
-    if (page < 1 || page > totalPages) return;
-    currentPage = page;
+    currentTransactionPage = page;
     renderTable();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function exportToExcel() {
-    if (transactions.length === 0) {
-        alert('Tidak ada data untuk diexport!');
-        return;
-    }
-    
-    const data = transactions.map(trx => ({
-        Tanggal: trx.date,
-        Deskripsi: trx.desc,
-        Jenis: trx.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran',
-        Nominal: trx.amount
-    }));
-    
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Tabungan');
-    XLSX.writeFile(wb, 'tabungan.xlsx');
 }
 
 // ==================== SUMMARY FUNCTIONS ====================
+function calculateTotalWealth() {
+    const totalIncome = transactions.filter(t => t.type === 'pemasukan').reduce((acc, t) => acc + t.amount, 0);
+    const totalExpense = transactions.filter(t => t.type === 'pengeluaran').reduce((acc, t) => acc + t.amount, 0);
+    const totalCash = totalIncome - totalExpense;
+    const totalMBanking = mbanking.reduce((acc, m) => acc + m.saldo, 0);
+    
+    const totalSaham = saham.reduce((acc, s) => acc + s.totalNilai, 0);
+    const totalEmas = emas.reduce((acc, e) => acc + e.totalNilai, 0);
+    const totalInvestasiLain = investasiLain.reduce((acc, i) => acc + i.totalNilai, 0);
+    
+    const totalUtangAktif = utang.filter(u => u.type === 'utang' && u.status === 'active').reduce((acc, u) => acc + u.amount, 0);
+    const totalPiutang = utang.filter(u => u.type === 'piutang' && u.status === 'active').reduce((acc, u) => acc + u.amount, 0);
+    
+    const totalAset = totalCash + totalMBanking + totalSaham + totalEmas + totalInvestasiLain + totalPiutang;
+    return totalAset - totalUtangAktif;
+}
+
 function updateSummary() {
     const totalIncome = transactions.filter(t => t.type === 'pemasukan').reduce((acc, t) => acc + t.amount, 0);
     const totalExpense = transactions.filter(t => t.type === 'pengeluaran').reduce((acc, t) => acc + t.amount, 0);
     const totalCash = totalIncome - totalExpense;
     const totalMBanking = mbanking.reduce((acc, m) => acc + m.saldo, 0);
-    const totalInvestments = investments.reduce((acc, inv) => acc + inv.totalValue, 0);
-    const totalUtangAktif = utang.filter(u => u.status === 'active').reduce((acc, u) => acc + u.amount, 0);
     
-    const totalAset = totalCash + totalMBanking + totalInvestments;
-    const totalWealth = totalAset - totalUtangAktif;
+    const totalSaham = saham.reduce((acc, s) => acc + s.totalNilai, 0);
+    const totalEmas = emas.reduce((acc, e) => acc + e.totalNilai, 0);
+    const totalInvestasiLain = investasiLain.reduce((acc, i) => acc + i.totalNilai, 0);
+    
+    const totalUtangAktif = utang.filter(u => u.type === 'utang' && u.status === 'active').reduce((acc, u) => acc + u.amount, 0);
+    const totalPiutang = utang.filter(u => u.type === 'piutang' && u.status === 'active').reduce((acc, u) => acc + u.amount, 0);
+    
+    const totalWealth = calculateTotalWealth();
 
-    document.getElementById('totalIncome').textContent = `Rp ${formatRupiah(totalIncome)}`;
-    document.getElementById('totalExpense').textContent = `Rp ${formatRupiah(totalExpense)}`;
-    document.getElementById('totalBalance').textContent = `Rp ${formatRupiah(totalCash)}`;
-    document.getElementById('totalTabungan').textContent = `Rp ${formatRupiah(totalWealth)}`;
-    document.getElementById('totalGrand').textContent = `Rp ${formatRupiah(totalWealth)}`;
+    document.getElementById('totalIncome').innerHTML = formatNumber(totalIncome);
+    document.getElementById('totalExpense').innerHTML = formatNumber(totalExpense);
+    document.getElementById('totalBalance').innerHTML = formatNumber(totalCash);
+    document.getElementById('totalGrand').innerHTML = formatRupiah(totalWealth);
     
-    investmentTypes.forEach(type => {
-        const total = investments.filter(inv => inv.type === type).reduce((acc, inv) => acc + inv.totalValue, 0);
-        const element = document.getElementById(`total${type.charAt(0).toUpperCase() + type.slice(1)}`);
-        if (element) {
-            element.textContent = `Rp ${formatRupiah(total)}`;
-        }
-    });
+    // Update health badge
+    const healthBadge = document.getElementById('financialHealthBadge');
+    if (totalWealth <= 0) {
+        healthBadge.className = 'badge bg-danger';
+        healthBadge.innerHTML = '🔴 Bangkrut';
+    } else if (totalUtangAktif > totalWealth * 0.5) {
+        healthBadge.className = 'badge bg-warning text-dark';
+        healthBadge.innerHTML = '🟡 Waspada';
+    } else {
+        healthBadge.className = 'badge bg-success';
+        healthBadge.innerHTML = '💚 Sehat';
+    }
     
-    renderInvestmentSummaryCards();
-    updateFinancialHealthBadge();
-    renderTargets(); // Re-render targets untuk update badge "Dapat Dibeli"
+    // Investment Summary Cards
+    const container = document.getElementById('investmentSummaryCards');
+    if (container) {
+        container.innerHTML = `
+            <div class="col-4">
+                <div class="summary-card">
+                    <div class="label">Saham</div>
+                    <div class="value text-primary">${formatNumber(totalSaham)}</div>
+                    <small>${formatRupiah(totalSaham)}</small>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="summary-card">
+                    <div class="label">Emas</div>
+                    <div class="value text-warning">${formatNumber(totalEmas)}</div>
+                    <small>${formatRupiah(totalEmas)}</small>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="summary-card">
+                    <div class="label">Lainnya</div>
+                    <div class="value text-info">${formatNumber(totalInvestasiLain)}</div>
+                    <small>${formatRupiah(totalInvestasiLain)}</small>
+                </div>
+            </div>
+        `;
+    }
 }
+
+// ==================== SAVE FUNCTIONS ====================
+function saveTransactions() { localStorage.setItem('transactions', JSON.stringify(transactions)); }
+function saveMBanking() { localStorage.setItem('mbanking', JSON.stringify(mbanking)); }
+function saveGajian() { localStorage.setItem('gajian', JSON.stringify(gajian)); }
+function saveSaham() { localStorage.setItem('saham', JSON.stringify(saham)); }
+function saveEmas() { localStorage.setItem('emas', JSON.stringify(emas)); }
+function saveInvestasiLain() { localStorage.setItem('investasiLain', JSON.stringify(investasiLain)); }
+function saveUtang() { localStorage.setItem('utang', JSON.stringify(utang)); }
+function saveTargets() { localStorage.setItem('targets', JSON.stringify(targets)); }
 
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', function() {
-    renderTable();
-    renderMBanking();
-    renderInvestments();
-    renderUtang();
-    renderTargets();
-    updateInvestmentSelects();
-    renderInvestmentSummaryCards();
-    updateSummary();
-
-    document.getElementById('amount').addEventListener('keypress', function(e) {
+    // Format currency inputs
+    document.querySelectorAll('.currency-input').forEach(input => {
+        input.addEventListener('keyup', function() { formatCurrency(this); });
+        input.addEventListener('blur', function() { formatCurrency(this); });
+    });
+    
+    // Enter key handlers
+    document.getElementById('amount')?.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') addTransaction();
     });
     
-    document.getElementById('mbankingSaldo').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') addMBanking();
-    });
-    
-    document.getElementById('utangAmount').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') addUtang();
-    });
-    
-    document.getElementById('targetAmount').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') addTarget();
-    });
-    
-    // Fix for mobile 100vh issue
-    const vh = window.innerHeight * 0.01;
-    document.documentElement.style.setProperty('--vh', `${vh}px`);
+    // Render all
+    renderGajian();
+    renderMBanking();
+    renderSaham();
+    renderEmas();
+    renderInvestasiLain();
+    renderUtang();
+    renderTargets();
+    renderTable();
+    updateRekeningSelect();
+    updateSummary();
 });
