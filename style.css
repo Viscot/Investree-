@@ -1,117 +1,288 @@
 :root {
     --primary-color: #4361ee;
-    --success-color: #4cc9f0;
-    --danger-color: #f72585;
-    --warning-color: #f9c74f;
-    --info-color: #7209b7;
+    --success-color: #06d6a0;
+    --danger-color: #ef476f;
+    --warning-color: #ffd166;
+    --info-color: #4cc9f0;
+    --dark-color: #2b2d42;
     --light-bg: #f8f9fa;
-    --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --card-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 * {
+    margin: 0;
+    padding: 0;
     box-sizing: border-box;
 }
 
 body {
-    background: var(--light-bg);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-    margin: 0;
-    padding: 0;
+    background-color: var(--light-bg);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
     min-height: 100vh;
 }
 
 .container-fluid {
-    max-width: 1400px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 8px;
 }
 
-/* Cards */
+/* Card Styles */
 .card {
     border: none;
-    border-radius: 12px;
+    border-radius: 16px;
     box-shadow: var(--card-shadow);
+    overflow: hidden;
     margin-bottom: 12px;
-    background: white;
+    animation: slideIn 0.3s ease-out;
 }
 
 .card-header {
-    background-color: var(--primary-color);
-    color: white;
-    border-radius: 12px 12px 0 0 !important;
+    border-bottom: none;
     padding: 12px 16px;
+    font-weight: 600;
 }
 
 .card-body {
     padding: 16px;
 }
 
-/* Mobile First Typography */
-h2 {
-    font-size: 1.25rem !important;
-    font-weight: 600;
+/* Format Angka */
+.format-kecil {
+    font-size: 0.9rem;
 }
 
-h5 {
-    font-size: 1rem !important;
-    font-weight: 600;
+.format-besar {
+    font-size: 1.5rem;
+    font-weight: 700;
 }
 
-h6 {
-    font-size: 0.85rem !important;
-    font-weight: 600;
-}
-
-/* Buttons */
-.btn {
-    border-radius: 8px;
+/* Badge Styles */
+.badge {
+    padding: 6px 12px;
+    border-radius: 20px;
     font-weight: 500;
-    white-space: nowrap;
+    font-size: 0.75rem;
 }
 
-.btn-sm {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.85rem;
+/* Gajian Item */
+.gajian-item {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    padding: 12px;
+    border-left: 4px solid #28a745;
+    margin-bottom: 8px;
+    transition: transform 0.2s;
 }
 
-.btn-circle {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
+.gajian-item:hover {
+    transform: translateY(-2px);
 }
 
-/* Form Controls */
-.form-control, .form-select {
+.gajian-sudah {
+    border-left-color: #6c757d;
+    opacity: 0.8;
+}
+
+.gajian-sudah .gajian-nominal {
+    text-decoration: line-through;
+    color: #6c757d;
+}
+
+/* Bank Items */
+.bank-item {
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+    color: white;
+    transition: transform 0.2s;
+    height: 100%;
+}
+
+.bank-item:hover {
+    transform: translateY(-2px);
+}
+
+.bank-BCA { background: linear-gradient(135deg, #003366, #004d99); }
+.bank-Mandiri { background: linear-gradient(135deg, #003da5, #002b7a); }
+.bank-BRI { background: linear-gradient(135deg, #004b8d, #0066b3); }
+.bank-BNI { background: linear-gradient(135deg, #ff6600, #cc5200); }
+.bank-CIMB\ Niaga { background: linear-gradient(135deg, #7e2d8e, #5e1f6b); }
+.bank-Danamon { background: linear-gradient(135deg, #006330, #004d26); }
+.bank-Permata { background: linear-gradient(135deg, #0077be, #005c94); }
+.bank-Maybank { background: linear-gradient(135deg, #fdb913, #ca9410); }
+.bank-Bank\ Lain { background: linear-gradient(135deg, #6c757d, #495057); }
+
+.bank-item .bank-nama {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.bank-item .bank-saldo {
+    font-size: 1.2rem;
+    font-weight: 700;
+    word-break: break-word;
+}
+
+/* Investment Cards */
+.invest-card {
+    background: white;
+    border-radius: 12px;
+    padding: 12px;
+    border-left: 4px solid;
+    box-shadow: var(--card-shadow);
+    height: 100%;
+    transition: transform 0.2s;
+}
+
+.invest-card:hover {
+    transform: translateY(-2px);
+}
+
+.invest-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 8px;
+}
+
+.invest-kode {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--dark-color);
+}
+
+.invest-detail {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+.invest-nilai {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+/* Saham */
+.saham-item {
+    border-left-color: #4cc9f0;
+}
+
+/* Emas */
+.emas-item {
+    border-left-color: #ffd166;
+}
+
+/* Summary Cards */
+.summary-card {
+    background: white;
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+    box-shadow: var(--card-shadow);
+    height: 100%;
+}
+
+.summary-card .label {
+    font-size: 0.7rem;
+    color: #6c757d;
+    margin-bottom: 4px;
+}
+
+.summary-card .value {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+/* Target Cards */
+.target-card {
+    background: white;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s;
+}
+
+.target-card:hover {
+    transform: translateY(-2px);
+}
+
+.target-priority-high { border-left: 4px solid #ef476f; }
+.target-priority-medium { border-left: 4px solid #ffd166; }
+.target-priority-low { border-left: 4px solid #06d6a0; }
+
+.target-progress {
+    height: 8px;
+    border-radius: 4px;
+    background: #e9ecef;
+    margin: 8px 0;
+    overflow: hidden;
+}
+
+.target-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #4cc9f0, #4361ee);
+    border-radius: 4px;
+    transition: width 0.3s;
+}
+
+.target-progress-bar.achieved {
+    background: linear-gradient(90deg, #06d6a0, #00b09b);
+}
+
+/* Utang Cards */
+.utang-card {
+    background: white;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s;
+}
+
+.utang-card:hover {
+    transform: translateY(-2px);
+}
+
+.utang-active { border-left: 4px solid #ef476f; }
+.utang-lunas { border-left: 4px solid #06d6a0; }
+.piutang-active { border-left: 4px solid #4cc9f0; }
+
+/* Table Styles */
+.table-responsive {
     border-radius: 8px;
-    border: 1px solid #dee2e6;
-    font-size: 0.9rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
-.form-control:focus, .form-select:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
+.table {
+    font-size: 0.8rem;
+    margin-bottom: 0;
+    min-width: 600px;
 }
 
-.form-control-sm, .form-select-sm {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.85rem;
+.table th {
+    font-weight: 600;
+    color: #495057;
+    white-space: nowrap;
+    padding: 10px 8px;
 }
 
-.input-group-text {
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
-    font-size: 0.9rem;
+.table td {
+    vertical-align: middle;
+    white-space: nowrap;
+    padding: 10px 8px;
 }
 
 /* Filter Buttons */
 .filter-btn {
     border-radius: 20px;
-    padding: 0.4rem 1rem;
-    font-size: 0.85rem;
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    border: 1px solid #dee2e6;
 }
 
 .filter-btn.active {
@@ -120,251 +291,176 @@ h6 {
     border-color: var(--primary-color);
 }
 
-/* Table */
-.table-responsive {
-    border-radius: 8px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-.table {
-    font-size: 0.85rem;
-    margin-bottom: 0;
-    min-width: 600px;
-}
-
-.table thead th {
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    padding: 10px 8px;
-    font-weight: 500;
-    font-size: 0.8rem;
-}
-
-.table tbody td {
-    padding: 10px 8px;
-    vertical-align: middle;
-}
-
-.table tbody tr:hover {
-    background-color: rgba(67, 97, 238, 0.05);
-}
-
-/* Badges */
-.badge-income, .badge-expense {
-    padding: 4px 8px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    display: inline-block;
-}
-
-.badge-income {
-    background-color: rgba(76, 201, 240, 0.15);
-    color: #2a9d8f;
-}
-
-.badge-expense {
-    background-color: rgba(247, 37, 133, 0.15);
-    color: #e63946;
-}
-
 /* Pagination */
 .pagination {
-    flex-wrap: wrap;
+    margin-top: 12px;
     gap: 4px;
 }
 
-.pagination .page-link {
+.page-link {
     padding: 6px 12px;
-    font-size: 0.85rem;
-    border-radius: 6px;
+    font-size: 0.75rem;
+    border-radius: 8px;
     color: var(--primary-color);
     border: 1px solid #dee2e6;
+    cursor: pointer;
 }
 
-.pagination .page-item.active .page-link {
+.page-item.active .page-link {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
     color: white;
 }
 
-/* Summary Cards */
-.summary-card {
-    border-left: 4px solid;
-    border-radius: 8px;
-    transition: transform 0.2s;
-}
-
-.summary-income { border-left-color: var(--success-color); }
-.summary-expense { border-left-color: var(--danger-color); }
-.summary-total { border-left-color: var(--primary-color); }
-
-.summary-card .card-body {
-    padding: 12px !important;
-}
-
-.summary-card .card-title {
-    font-size: 0.75rem;
-    margin-bottom: 4px;
-    color: #6c757d;
-}
-
-.summary-card .card-text {
-    font-size: 1rem;
-    line-height: 1.2;
-    word-break: break-word;
-}
-
-/* Bank Items - Warna sesuai ciri khas bank */
-.bank-item {
-    border-radius: 12px;
-    padding: 16px;
-    height: 100%;
-    box-shadow: var(--card-shadow);
-    color: white;
-    transition: transform 0.2s;
-}
-
-.bank-item:hover {
-    transform: translateY(-2px);
-}
-
-/* Warna Bank BCA */
-.bank-bca {
-    background: linear-gradient(135deg, #003366 0%, #004d99 100%);
-}
-
-/* Warna Bank Mandiri */
-.bank-mandiri {
-    background: linear-gradient(135deg, #003da5 0%, #002b7a 100%);
-}
-
-/* Warna Bank BRI */
-.bank-bri {
-    background: linear-gradient(135deg, #004b8d 0%, #0066b3 100%);
-}
-
-/* Warna Bank BNI */
-.bank-bni {
-    background: linear-gradient(135deg, #ff6600 0%, #cc5200 100%);
-}
-
-/* Warna Bank CIMB Niaga */
-.bank-cimb {
-    background: linear-gradient(135deg, #7e2d8e 0%, #5e1f6b 100%);
-}
-
-/* Warna Bank Danamon */
-.bank-danamon {
-    background: linear-gradient(135deg, #006330 0%, #004d26 100%);
-}
-
-/* Warna Bank Permata */
-.bank-permata {
-    background: linear-gradient(135deg, #0077be 0%, #005c94 100%);
-}
-
-/* Warna Bank Maybank */
-.bank-maybank {
-    background: linear-gradient(135deg, #fdb913 0%, #ca9410 100%);
-}
-
-/* Warna Bank Lain */
-.bank-lain {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-}
-
-.bank-item h6 {
-    font-size: 1rem !important;
-    font-weight: 600;
-    margin-bottom: 8px;
-}
-
-.bank-item .saldo {
-    font-size: 1.25rem;
-    font-weight: bold;
-    margin: 8px 0;
-    word-break: break-word;
-}
-
-.bank-item small {
-    font-size: 0.7rem;
-    opacity: 0.9;
-}
-
-/* Investment Cards */
-.investment-card {
-    background-color: white;
+/* Form Controls */
+.form-control, .form-select {
     border-radius: 10px;
-    padding: 12px;
-    height: 100%;
-    border-left: 4px solid;
-    box-shadow: var(--card-shadow);
+    border: 1px solid #e0e0e0;
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
 }
 
-.investment-card h6 {
-    font-size: 0.9rem !important;
-    font-weight: 600;
-    margin-bottom: 4px;
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.1);
+    outline: none;
 }
 
-.investment-card .small {
-    font-size: 0.7rem;
+.input-group {
+    flex-wrap: nowrap;
 }
 
-.investment-card .price {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--primary-color);
+.input-group-text {
+    background-color: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
 }
 
-/* Responsive Breakpoints */
-@media (min-width: 576px) {
-    .container-fluid { padding: 12px; }
-    h2 { font-size: 1.5rem !important; }
-    h5 { font-size: 1.1rem !important; }
-    .summary-card .card-text { font-size: 1.1rem; }
-    .bank-item .saldo { font-size: 1.4rem; }
+/* Buttons */
+.btn {
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s;
+    white-space: nowrap;
 }
 
-@media (min-width: 768px) {
-    .container-fluid { padding: 20px; }
-    h2 { font-size: 1.75rem !important; }
-    h5 { font-size: 1.25rem !important; }
-    .summary-card .card-text { font-size: 1.25rem; }
-    .table { font-size: 0.9rem; }
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
-@media (min-width: 992px) {
-    .summary-card .card-text { font-size: 1.4rem; }
-    .bank-item .saldo { font-size: 1.6rem; }
+.btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+}
+
+.btn-circle {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Nav Tabs */
+.nav-tabs {
+    border-bottom: none;
+    gap: 4px;
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    color: #6c757d;
+    background: #f8f9fa;
+    transition: all 0.2s;
+}
+
+.nav-tabs .nav-link:hover {
+    background: #e9ecef;
+}
+
+.nav-tabs .nav-link.active {
+    background: var(--primary-color);
+    color: white;
+    font-weight: 500;
+}
+
+/* Alert */
+.alert {
+    border-radius: 10px;
+    border: none;
+    font-size: 0.8rem;
+}
+
+.alert-info {
+    background-color: #e7f3ff;
+    color: #0a58ca;
 }
 
 /* Utility Classes */
-.text-success-custom { color: #2a9d8f !important; }
-.text-danger-custom { color: #e63946 !important; }
+.text-success-custom { color: #06d6a0 !important; }
+.text-danger-custom { color: #ef476f !important; }
+.text-primary-custom { color: #4361ee !important; }
 
-/* Hover Effects */
-.btn:hover { transform: translateY(-1px); }
-.bank-item:hover { transform: translateY(-2px); }
-.investment-card:hover { transform: translateY(-2px); }
+/* Animations */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Touch Friendly */
+button, .btn, .nav-link, .page-link {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
 
 /* Loading State */
 .loading {
-    opacity: 0.7;
+    opacity: 0.6;
     pointer-events: none;
 }
 
-/* Touch-friendly */
-button, .btn, .page-link {
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
+/* Responsive */
+@media (min-width: 576px) {
+    .container-fluid { padding: 12px; }
+    .bank-item .bank-saldo { font-size: 1.4rem; }
+    .summary-card .value { font-size: 1rem; }
+}
+
+@media (min-width: 768px) {
+    body { font-size: 15px; }
+    .bank-item .bank-saldo { font-size: 1.6rem; }
+    .invest-nilai { font-size: 1.1rem; }
 }
 
 @media (max-width: 576px) {
     .btn-sm { padding: 0.5rem 0.8rem; }
     .filter-btn { padding: 0.4rem 0.8rem; }
     .table td, .table th { padding: 8px 6px; }
+    
+    /* Hide scrollbar for mobile but keep functionality */
+    ::-webkit-scrollbar {
+        width: 3px;
+        height: 3px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: #c0c0c0;
+        border-radius: 3px;
+    }
 }
